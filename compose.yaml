@@ -1,0 +1,59 @@
+services:
+  api:
+    build: .
+    command: uvicorn app.api:app --host 0.0.0.0 --port 8000
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      UPLOAD_DIR: /data/uploads
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - uploads:/data/uploads
+      - model_cache:/models/hf
+    depends_on:
+      redis: {condition: service_healthy}
+      qdrant: {condition: service_started}
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: rq worker indexing --url redis://redis:6379/0
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+      - model_cache:/models/hf
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      redis: {condition: service_healthy}
+      qdrant: {condition: service_started}
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.5
+    ports:
+      - "127.0.0.1:6335:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  uploads:
+  model_cache:
+  redis_data:
+  qdrant_data:

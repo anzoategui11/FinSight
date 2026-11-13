@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+secrets/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.idea/
+.vscode/
+data/
+*.log
