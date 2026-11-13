@@ -12,6 +12,7 @@ services:
     volumes:
       - uploads:/data/uploads
       - model_cache:/models/hf
+      - ./secrets:/run/secrets:ro
     depends_on:
       redis: {condition: service_healthy}
       qdrant: {condition: service_started}
@@ -51,6 +52,19 @@ services:
       - "127.0.0.1:6335:6333"
     volumes:
       - qdrant_data:/qdrant/storage
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      FINSIGHT_API_URL: http://api:8000
+      FINSIGHT_API_KEY: ${FINSIGHT_API_KEY:?Set FINSIGHT_API_KEY in .env}
+    ports:
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      - api
+    restart: unless-stopped
 
 volumes:
   uploads:
