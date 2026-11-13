@@ -58,3 +58,25 @@ def set_status(conn, source, company, year, count, model, status, digest, versio
                 IFF(s.indexing_status='INDEXED', CURRENT_TIMESTAMP(),NULL))''',
             (source, company, year, count, model, status, digest, version, error))
     conn.commit()
+
+def company_document_counts(conn):
+    """Count successfully indexed filings by company."""
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT
+                COMPANY,
+                COUNT(*) AS DOCUMENT_COUNT
+            FROM DOCUMENT_CATALOG
+            WHERE INDEXING_STATUS = 'INDEXED'
+            GROUP BY COMPANY
+            ORDER BY COMPANY
+        """)
+
+        return [
+            {
+                "company": ticker,
+                "document_count": int(count)
+            }
+            for ticker, count in cur.fetchall()
+        ]

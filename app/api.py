@@ -9,7 +9,7 @@ from redis import Redis
 from rq import Queue
 from rq.job import Job
 from app.config import UPLOAD_DIR
-from app.catalog import connection, get_filing
+from app.catalog import connection, get_filing, company_document_counts
 from app.rag import chain
 
 app = FastAPI(title='FinSight RAG', version='0.1.0')
@@ -35,6 +35,15 @@ class Question(BaseModel):
 def health():
     return {'status': 'ok'}
 
+@app.get(
+    "/companies",
+    dependencies=[Depends(authorize)]
+)
+def list_companies():
+    with connection() as conn:
+        return {
+            "companies": company_document_counts(conn)
+        }
 
 @app.post('/documents', status_code=202, dependencies=[Depends(authorize)])
 def upload_document(file: UploadFile = File(...), company: str = Form(...), year: int = Form(...)):
